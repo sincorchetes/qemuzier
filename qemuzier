@@ -28,7 +28,7 @@ echo "`ls -l $QVMPATH | cut -d " " -f 9`"
 echo "Choose an options:
 1) Run VM
 2) Create VM
-3) Show information of VM
+3) List VMs
 4) Destroy VM"
 
 read -p "Choose one: " QVMINIT
