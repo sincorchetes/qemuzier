@@ -1,0 +1,119 @@
+#!/bin/bash
+#############################################
+# This script is licensed by GPLv2.0 terms.
+# Autor: @sincorchetes
+# E-mail: contacto@echemosunbitstazo.es
+# Website: https://www.echemosunbitstazo.es
+# Description: Launch QEMU instances with KVM 
+#############################################
+echo "Check dependencies..."
+sudo dnf install qemu-kvm qemu-img -y
+clear
+
+echo "Welcome to QEMUzier. Script to create a new VM easy"
+
+if [ ! -d $HOME/.qemuzier ]
+then
+	mkdir -p .qemuzier/.iso
+	export QVMPATH=$HOME/.qemuzier
+	export QVMISOPATH=$HOME/.qemuzier/.iso
+else
+	export QVMPATH=$HOME/.qemuzier
+       	export QVMISOPATH=$HOME/.qemuzier/iso
+fi
+
+echo "List of currently created VMs"
+echo "`ls -l $QVMPATH | cut -d " " -f 9`"
+
+echo "Choose an options:
+1) Run VM
+2) Create VM
+3) Show information of VM
+4) Destroy VM"
+
+read -p "Choose one: " QVMINIT
+
+case $QVMINIT in
+
+1)
+	read -p "Choose name of VM do you wanna run: " QVNAME
+	bash ${QVMPATH}/${QVNAME}/init.sh
+	;;
+2)
+	read -p "Choose name of VM: " QVMACHINENAME
+	QVMWORKDIR=${QVMPATH}/${QVMACHINENAME}
+	read -p "Choose amount quantity of RAM: " QVMRAM
+	read -p "Do you wanna create a VDisk? [y/N]" QVMDISKREPPLY
+	mkdir ${QVMWORKDIR}
+	if [[ $QVMDISKREPPLY == "y" ]]
+	then
+		read -p "Name of new Virtual Disk: " QVMDISKNAME
+		read -p "How many size do you wanna set: " QVMDISKSIZE
+		QVMDISKSIZE=${QVMDISKSIZE}G
+		QVMDISKNAME=${QVMDISKNAME}.qcow
+		qemu-img create ${QVMWORKDIR}/${QVMDISKNAME} ${QVMDISKSIZE}
+		export QVMDISKPATH="${QVMWORKDIR}/${QVMDISKNAME}"
+	fi
+	read -p "Do you wanna add .ISO image at boot? [y/N]" QVMCHOOSEBOOTDISK
+	if [[ ${QVMCHOOSEBOOTDISK} == "y" ]]
+	then
+		echo "`ls -l $QVMISOPATH | cut -d " " -f 9`"
+		read -p "Type full name of ISO (CentOS.iso): " $QVMISONAME
+		QVMBOOTDISKPATH=${QVMISOPATH}/${QVMISONAME}
+		export QVMBOOTDISKPATH 
+	fi
+
+	echo "Virtual Machine Appliance"
+	echo "Information about it"
+	echo "Name: ${QVMACHINENAME}"
+	echo "RAM: ${QVMRAM}"
+	echo "Virtual Disk:  ${QVMDISKNAME}"
+	echo "Network by default: NAT"
+
+	if [[ -n ${QVMBOOTDISKPATH} ]]
+	then
+		echo "Boot disk is: " ${QVMBOOTDISKPATH}
+		read -p "All information is correct? [y/N]" QVMCHECK
+		if [[ ${QVMCHECK} == "y" ]]
+        	then
+			echo ${QVMWORKDIR}
+            		echo "
+		        #!/bin/bash
+                	qemu-system-x86_64 -cdrom ${QVMBOOTDISKPATH} -hda ${QVMDISKPATH} --boot d -m ${QVMRAM}
+			" >> ${QVMWORKDIR}/init.sh
+			QVMINSTANCE=${QVMWORKDIR}/init.sh
+			chmod +x $QVMINSTANCE
+			echo "Virtual Machine was created"
+		fi
+	else [[ -z ${QVMBOOTDISKPATH} ]]
+		read -p "All information is correct? [y/N]" QVMCHECK
+               	if [[ ${QVMCHECK} == "y" ]]
+                then
+                	echo "
+                        #!/bin/bash 
+                        qemu-system-x86_64 -hda ${QVMDISKPATH} -m ${QVMRAM}
+			" > ${QVMWORKDIR}/init.sh
+                        $QVMINSTANCE=${QVMWORKDIR}/init.sh
+                        chmod +x $QVMINSTANCE
+                        echo "Virtual Machine was created"
+               	fi	
+	fi
+	;;		
+3)
+	echo "List of Virtual Machines"
+	echo "`ls -l $QVMPATH | cut -d " " -f 9`"
+	;;
+4)
+	read -p "Type name to destroy VM: " QVMNAME
+	read -p "Are you sure do you wanna remove it?: [y/N] " QVMCHECK
+	if [[ -n $QVMCHECK ]]
+	then
+		QVMRM=${QVMPATH}/${QVMNAME}
+		rm -rf ${QVMRM}
+		echo "Operation made successfully"
+	else
+		echo "Problem"
+	fi
+	;;
+
+esac

@@ -1,2 +1,3 @@
-# qemuzier
-Script tool to manage virtual machines on Fedora
+# QEMUzier
+
+Script to manage virtual machines on QEMU/KVM in Fedora systems.
